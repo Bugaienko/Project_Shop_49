@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+
+<!--    Удаление колонки из таблицы-->
+    <changeSet id="drop-column-cart-id" author="SergeyB">
+        <dropColumn tableName="customer" columnName="c_id"/>
+    </changeSet>
+
+
+<!--    Добавление / удаление ограничения nullable-->
+<!--    Добавление-->
+<!--    <changeSet id="1733844278354-1" author="SergeyB">-->
+<!--        <addNotNullConstraint -->
+<!--                tableName="customer" -->
+<!--                columnName="c_id"-->
+<!--        />-->
+<!--&lt;!&ndash;                columnDataType="bigint" />&ndash;&gt;-->
+<!--    </changeSet>-->
+<!--    -->
+<!--&lt;!&ndash;    Удалить ограничение nullable&ndash;&gt;-->
+<!--    <changeSet id="1733844383031-1" author="SergeyB">-->
+<!--        <dropNotNullConstraint tableName="customer"-->
+<!--                               columnName="c_id"-->
+<!--        />-->
+<!--    </changeSet>-->
+
+
+</databaseChangeLog>
