@@ -1,5 +1,8 @@
 package ait.cohort49.shop.model.entity;
 
+import jakarta.persistence.*;
+import jdk.jfr.Enabled;
+
 import java.util.Objects;
 
 /**
@@ -7,11 +10,23 @@ import java.util.Objects;
  * {@code @date} 10.12.2024
  */
 
+@Entity
+@Table(name = "customer")
 public class Customer {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column
     private Long id;
+
+    @Column
     private String name;
+
+    @Column
     private boolean active;
+
+    @OneToOne(mappedBy = "customer", cascade = CascadeType.PERSIST)
+    private Cart cart;
 
 
     @Override
@@ -35,7 +50,13 @@ public class Customer {
         return result;
     }
 
+    public Cart getCart() {
+        return cart;
+    }
 
+    public void setCart(Cart cart) {
+        this.cart = cart;
+    }
 
     public Long getId() {
         return id;

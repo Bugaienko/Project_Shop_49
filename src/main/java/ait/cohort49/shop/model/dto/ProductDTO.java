@@ -17,8 +17,6 @@ import java.util.Objects;
 public class ProductDTO {
 
     @Schema(description = "Product unique identifier", example = "15", accessMode = Schema.AccessMode.READ_ONLY)
-    @Id // Указывает, что поле является первичным ключом
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Schema(description = "Product title", example = "Banana")
