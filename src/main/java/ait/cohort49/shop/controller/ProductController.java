@@ -1,8 +1,18 @@
 package ait.cohort49.shop.controller;
 
+import ait.cohort49.shop.model.dto.ProductDTO;
 import ait.cohort49.shop.model.entity.Product;
+import ait.cohort49.shop.service.interfaces.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -18,31 +28,52 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/products")
+@Tag(name = "Product controller", description = "Controller for operations with products")
 public class ProductController {
 
 
-    // Create: POST -> /products/?title=rr&price=564
+    private final ProductService productService;
+
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
+
+
+    // Create: POST -> /products
+    @Operation(summary = "Create product", description = "Add new product", tags = {"Product"})
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "successful operation",
+            content = { @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDTO.class)),
+                        @Content(mediaType = "application/xml", schema = @Schema(implementation = ProductDTO.class))
+            })
+    })
     @PostMapping
-    public Product saveProduct(@RequestBody Product product) {
-        // Todo обращаемся к сервису для сохранения продукта
-        return product;
+    public ProductDTO saveProduct(@RequestBody ProductDTO productDto) {
+       return productService.saveProduct(productDto);
     }
 
     // Получение ресурса
     // GET /products/5
     // GET /products/1565
     // GET /products/55
+    @Operation(summary = "Get product by id",  tags = {"Product"})
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "successful operation", content = { @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDTO.class)),
+                    @Content(mediaType = "application/xml", schema = @Schema(implementation = ProductDTO.class)) }),
+            @ApiResponse(responseCode = "400", description = "Invalid id supplied", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Product not found", content = @Content) })
     @GetMapping("/{productId}")
-    public Product getById(@PathVariable("productId") Long id) {
-        // Todo обращаемся к сервисе и запрашиваем продукт по id
-        return null;
+    public ProductDTO getById(
+            @Parameter(description = "The id that needs to be fetched", required = true)
+            @PathVariable("productId")
+            Long id) {
+        return productService.getProductById(id);
     }
 
     // get:  GET /products
     @GetMapping
-    public List<Product> getAll() {
-        // Todo обращаемся к сервису, получаем все продукты
-        return List.of();
+    public List<ProductDTO> getAll() {
+        return productService.getAllActiveProducts();
     }
 
     //products?id=3
@@ -52,18 +83,42 @@ public class ProductController {
 //        return null;
 //    }
 
-    // Update: PUT -> /products
+    // Update: PUT -> /products/5
     @PutMapping("/{id}")
-    public Product update(@PathVariable Long id, @RequestBody Product product){
-        //Todo К сервису для обновления продукты
-        return product;
+    public ProductDTO update(@PathVariable Long id, @RequestBody ProductDTO productDTO){
+        return productService.updateProduct(id, productDTO);
     }
 
-    // Delete: DELETE -> /products/id
+    // Delete: DELETE -> /products/3
     @DeleteMapping("/{id}")
-    public Product remove(@PathVariable Long id) {
-        // Todo сервис -> удаление продукта
-        return null;
+    public ProductDTO remove(@PathVariable Long id) {
+        return productService.deleteProduct(id);
     }
 
+    // Delete: DELETE -> /products/by-title?title=Banana
+    @DeleteMapping("/by-title")
+    public ProductDTO deleteProductByTitle(@RequestParam String title) {
+        return productService.deleteProductByTitle(title);
+    }
+
+    // PUT -> /products/restore/25
+    @PutMapping("/restore/{id}")
+    public ProductDTO restoreProductById(@PathVariable Long id) {
+        return productService.restoreProductById(id);
+    }
+
+    @GetMapping("/count")
+    public long getProductsCount() {
+        return productService.getProductsCount();
+    }
+
+    @GetMapping("/total-price")
+    public BigDecimal getTotalPrice() {
+        return productService.getTotalPrice();
+    }
+
+    @GetMapping("/average-price")
+    public BigDecimal getAveragePrice() {
+        return productService.getAveragePrice();
+    }
 }
