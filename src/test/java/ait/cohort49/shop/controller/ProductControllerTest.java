@@ -3,6 +3,7 @@ package ait.cohort49.shop.controller;
 import ait.cohort49.shop.model.dto.ProductDTO;
 import ait.cohort49.shop.model.entity.Role;
 import ait.cohort49.shop.model.entity.User;
+import ait.cohort49.shop.repository.ProductRepository;
 import ait.cohort49.shop.repository.RoleRepository;
 import ait.cohort49.shop.repository.UserRepository;
 import ait.cohort49.shop.security.dto.LoginRequestDTO;
@@ -12,10 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,8 +45,13 @@ class ProductControllerTest {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private ProductRepository productRepository;
+
     private String adminAccessToken;
     private String userAccessToken;
+
+    private static Long testProductId;
 
 
     private static final String TEST_PRODUCT_TITLE = "Test Product";
@@ -60,6 +68,7 @@ class ProductControllerTest {
     private static final String LOGIN_ENDPOINT = "/login";
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String AUTH_HEADER_NAME = "Authorization";
 
 
     @BeforeEach
@@ -123,7 +132,7 @@ class ProductControllerTest {
                 authUrl,
                 HttpMethod.POST,
                 request,
-                TokenResponseDTO.class
+                TokenResponseDTO.class // Class<T>
         );
 
         assertTrue(response.hasBody(), "Authorization response body is empty");
@@ -134,6 +143,19 @@ class ProductControllerTest {
         adminAccessToken = BEARER_PREFIX + tokenResponse.getAccessToken();
 
 
+        request = new HttpEntity<>(loginUserDto);
+
+        response = template.exchange(
+                authUrl,
+                HttpMethod.POST,
+                request,
+                TokenResponseDTO.class
+        );
+
+        assertTrue(response.hasBody(), "Authorization response body is empty");
+
+        tokenResponse = response.getBody();
+        userAccessToken = BEARER_PREFIX + tokenResponse.getAccessToken();
 
 
 
@@ -142,8 +164,159 @@ class ProductControllerTest {
     }
 
     @Test
-    public void test(){
-        // Пустой
+    public void positiveGettingAllProductsWithoutAuthorization(){
+        // GET http://localhost:88888/api/products
+
+        String url = URL_PREFIX + port+ PRODUCTS_RESOURCE;
+
+        // Void - класс-пустышка.
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        ResponseEntity<List<ProductDTO>> response = template.exchange(
+                url,
+                HttpMethod.GET,
+                request,
+                new ParameterizedTypeReference<List<ProductDTO>>() {}
+        );
+
+        // Проверка статуса ответа
+        assertEquals(HttpStatus.OK, response.getStatusCode(), "Response has unexpected status");
+
+        // Проверка наличия тела
+        assertTrue(response.hasBody(), "Response body is empty");
     }
+
+    @Test
+    void negativeSavingProductWithoutAuthorization(){
+        // POST http://localhost:88888/api/products + body
+
+        String url = URL_PREFIX + port+ PRODUCTS_RESOURCE;
+
+        HttpEntity<ProductDTO> request = new HttpEntity<>(testProduct, headers);
+
+        ResponseEntity<ProductDTO> response = template.exchange(
+                url,
+                HttpMethod.POST,
+                request,
+                ProductDTO.class
+        );
+
+        // Проверка статуса ответа: 403 Forbidden
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode(), "Response has unexpected status");
+
+        // Проверка ответа: отсутствует тело
+        assertFalse(response.hasBody(), "Response has unexpected body");
+    }
+
+    @Test
+    void negativeSavingProductWithUserTokenAuthorization(){
+
+        String url = URL_PREFIX + port+ PRODUCTS_RESOURCE;
+        headers.put(AUTH_HEADER_NAME, List.of(userAccessToken));
+
+        //TODO Составить запрос (передать туда тестовый продукт и заголовки с авторизацией)
+        // Отправить запрос, получить ответа
+        // Проверить статус ответа. Ждем 403 ответ
+
+    }
+
+    @Test
+    @Order(10)
+    void positiveSavingProductWithAdminTokenAuthorization(){
+        String url = URL_PREFIX + port+ PRODUCTS_RESOURCE;
+        headers.put(AUTH_HEADER_NAME, List.of(adminAccessToken));
+
+        HttpEntity<ProductDTO> request = new HttpEntity<>(testProduct, headers);
+
+        ResponseEntity<ProductDTO> response = template.exchange(
+                url,
+                HttpMethod.POST,
+                request,
+                ProductDTO.class
+        );
+
+        // Повторное сохранение продукта с таким же именем невозможно
+        // Последний в Order позитивный - получит продукт по ID.
+        // После проверок - удалить продукт из БД по id
+        assertEquals(HttpStatus.OK, response.getStatusCode(), "Response has unexpected status");
+        assertTrue(response.hasBody(), "Response body is empty");
+
+        ProductDTO savedProduct = response.getBody();
+        assertNotNull(savedProduct, "Response body doesn't have a product");
+        assertEquals(testProduct.getTitle(), savedProduct.getTitle(), "Saved product has unexpected title");
+
+        testProductId = savedProduct.getId();
+    }
+
+    @Test
+    @Order(20)
+    void negativeGettingProductByIdWithoutAuthorization(){
+
+       // GET http://localhost:88888/api/products/777
+
+        String url = URL_PREFIX + port+ PRODUCTS_RESOURCE + "/" + testProductId;
+        //TODO
+        //Сформировать запрос, без добавления заголовка авторизации
+        // Отправить запрос, получить ответ
+        // Проверить статус 403 / 401, проверить отсутствие тела
+    }
+
+
+    @Test
+    @Order(30)
+    void negativeGettingProductByIdWithBasicAuthorization(){
+        // GET http://localhost:88888/api/products/777
+
+        String url = URL_PREFIX + port+ PRODUCTS_RESOURCE + "/" + testProductId;
+
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        ResponseEntity<ProductDTO> response = template
+                .withBasicAuth(TEST_USER_NAME, TEST_PASSWORD)
+                .exchange(
+                        url,
+                        HttpMethod.GET,
+                        request,
+                        ProductDTO.class
+                );
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode(), "Response has unexpected status");
+        assertFalse(response.hasBody(), "Response has unexpected body");
+
+    }
+
+    @Test
+    @Order(40)
+    void negativeGettingProductByIdWithIncorrectTokenAuthorization(){
+        String url = URL_PREFIX + port+ PRODUCTS_RESOURCE + "/" + testProductId;
+
+        headers.put(AUTH_HEADER_NAME, List.of(adminAccessToken + "a"));
+
+        // TODO запрос, ответ, проверка статуса 403
+    }
+
+    @Test
+    @Order(50)
+    void positiveGettingProductByIdWithAdminTokenAuthorization(){
+        String url = URL_PREFIX + port+ PRODUCTS_RESOURCE + "/" + testProductId;
+        headers.put(AUTH_HEADER_NAME, List.of(adminAccessToken));
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        ResponseEntity<ProductDTO> response = template.exchange(url, HttpMethod.GET, request, ProductDTO.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode(), "Response has unexpected status");
+
+        ProductDTO savedProduct = response.getBody();
+        assertNotNull(savedProduct, "Response body doesn't have a product");
+
+        // В последнем тесте цепочки удаляем сохраненный продукт из БД
+        // Чтобы при следующем прогоне тестов метод сохранения продукты отрабатывал и мы получали его id
+
+        productRepository.deleteById(savedProduct.getId());
+    }
+
+
 
 }
