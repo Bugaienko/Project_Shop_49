@@ -1,5 +1,8 @@
 package ait.cohort49.shop.service;
 
+import ait.cohort49.shop.exceprionHandling.exceptions.FirstTestException;
+import ait.cohort49.shop.exceprionHandling.exceptions.SecondTestException;
+import ait.cohort49.shop.exceprionHandling.exceptions.ThirdTestException;
 import ait.cohort49.shop.model.dto.ProductDTO;
 import ait.cohort49.shop.model.entity.Product;
 import ait.cohort49.shop.repository.ProductRepository;
@@ -52,7 +55,8 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO getProductById(Long id) {
         Product product = repository.findById(id).orElse(null);
         if (product == null || !product.isActive()) {
-            return null;
+            throw new ThirdTestException("This is the third test exception");
+//            return null;
         }
         return mappingService.mapEntityToDto(product);
     }

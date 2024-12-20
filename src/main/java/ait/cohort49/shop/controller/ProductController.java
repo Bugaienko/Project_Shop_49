@@ -1,5 +1,7 @@
 package ait.cohort49.shop.controller;
 
+import ait.cohort49.shop.exceprionHandling.Response;
+import ait.cohort49.shop.exceprionHandling.exceptions.FirstTestException;
 import ait.cohort49.shop.model.dto.ProductDTO;
 import ait.cohort49.shop.model.entity.Product;
 import ait.cohort49.shop.service.interfaces.ProductService;
@@ -10,6 +12,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -57,7 +62,7 @@ public class ProductController {
             })
     })
     @PostMapping
-    public ProductDTO saveProduct(@RequestBody ProductDTO productDto) {
+    public ProductDTO saveProduct(@Valid @RequestBody ProductDTO productDto) {
        return productService.saveProduct(productDto);
     }
 
@@ -76,6 +81,7 @@ public class ProductController {
             @Parameter(description = "The id that needs to be fetched", required = true)
             @PathVariable("productId")
             Long id) {
+
         return productService.getProductById(id);
     }
 
@@ -129,5 +135,12 @@ public class ProductController {
     @GetMapping("/average-price")
     public BigDecimal getAveragePrice() {
         return productService.getAveragePrice();
+    }
+
+    // Обработчик исключения в контроллере
+    @ExceptionHandler(FirstTestException.class)
+    public ResponseEntity<Response> handleException(FirstTestException exception) {
+        Response response = new Response(exception.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }
