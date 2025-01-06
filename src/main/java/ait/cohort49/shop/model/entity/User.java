@@ -40,20 +40,23 @@ public class User implements UserDetails {
     )
     private Set<Role> roles;
 
+    @Column(name = "email", nullable = false, length = 64)
+    private String email;
 
-
+    @Column(name = "active", nullable = false)
+    private boolean active;
 
     @Override
     public String toString() {
-        return String.format("User : id - %d, username - %s, roles - %s",
-                id, username, roles == null ? "[]" : roles );
+        return String.format("User : id - %d, username - %s, email - %s, active - %s,  roles - %s",
+                id, username, email, active, roles == null ? "[]" : roles );
     }
 
     @Override
     public final boolean equals(Object o) {
         if (!(o instanceof User user)) return false;
 
-        return Objects.equals(id, user.id) && Objects.equals(username, user.username) && Objects.equals(password, user.password) && Objects.equals(roles, user.roles);
+        return active == user.active && Objects.equals(id, user.id) && Objects.equals(username, user.username) && Objects.equals(password, user.password) && Objects.equals(roles, user.roles) && Objects.equals(email, user.email);
     }
 
     @Override
@@ -62,7 +65,25 @@ public class User implements UserDetails {
         result = 31 * result + Objects.hashCode(username);
         result = 31 * result + Objects.hashCode(password);
         result = 31 * result + Objects.hashCode(roles);
+        result = 31 * result + Objects.hashCode(email);
+        result = 31 * result + Boolean.hashCode(active);
         return result;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public Long getId() {
