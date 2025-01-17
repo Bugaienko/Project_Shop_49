@@ -1,7 +1,9 @@
 package ait.cohort49.shop.service;
 
 import ait.cohort49.shop.model.dto.UserRegisterDto;
+import ait.cohort49.shop.model.entity.ConfirmationCode;
 import ait.cohort49.shop.model.entity.User;
+import ait.cohort49.shop.repository.ConfirmationCodeRepository;
 import ait.cohort49.shop.repository.UserRepository;
 import ait.cohort49.shop.service.interfaces.EmailService;
 import ait.cohort49.shop.service.interfaces.RoleService;
@@ -11,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,13 +30,15 @@ public class UserServiceImpl implements UserService {
     private final RoleService roleService;
     private final EmailService emailService;
     private final UserMappingService userMappingService;
+    private final ConfirmationCodeRepository confirmationCodeRepository;
 
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, RoleService roleService, EmailService emailService, UserMappingService userMappingService) {
+    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, RoleService roleService, EmailService emailService, UserMappingService userMappingService, ConfirmationCodeRepository confirmationCodeRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.roleService = roleService;
         this.emailService = emailService;
         this.userMappingService = userMappingService;
+        this.confirmationCodeRepository = confirmationCodeRepository;
     }
 
     @Override
@@ -42,21 +47,13 @@ public class UserServiceImpl implements UserService {
 
         User user = userMappingService.mapDtoToEntity(userRegisterDto);
 
-        // Убедиться, что указанный email не используется
-        if (userRepository.existsByEmail(user.getEmail()) &&
-            userRepository.findByEmail(user.getEmail()).get().isActive()) {
-            throw new RuntimeException("User with email " + user.getEmail() + " already exists");
+        if (userRepository.existsByEmail(user.getEmail())) {
+            // Пользователь с таким email уже сохранен в БД.
+            // проверить его статус и т.д.
+            updateUserCredentials(user);
+            return;
         }
 
-        // Вытаскиваем пользователя из БД. Если email есть + статус = false
-        Optional<User> optionalUser = userRepository.findByEmail(user.getEmail());
-
-        if (optionalUser.isPresent()) {
-            user = optionalUser.get();
-            // Если пользователь есть - установить id остается прежним
-//            user.setId(null);
-
-        }
 
         // Устанавливаем роль "USER"
         user.setRoles(Set.of(roleService.getRoleUser()));
@@ -73,5 +70,54 @@ public class UserServiceImpl implements UserService {
         // После сохранения, отправить письмо с кодом подтверждения (код сохраняется в БД)
         emailService.sendConfirmationEmail(user);
 
+    }
+
+
+    private void updateUserCredentials(User user) {
+
+        // Уже проверили в методе register, что пользователь с таким email есть.
+        User existUser = userRepository.findByEmail(user.getEmail()).get();
+
+
+        // Убедиться, что указанный email не используется (проверяем active пользователя)
+        if (existUser.isActive()) {
+            throw new RuntimeException("User with email " + user.getEmail() + " already exists");
+        }
+        // Обновляем пароль
+        existUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        // Обновить username
+
+        if (!existUser.getUsername().equals(user.getUsername())) {
+            existUser.setUsername(user.getUsername());
+        }
+//
+//        existUser.setUsername(user.getUsername());
+//
+        userRepository.save(existUser);
+
+        emailService.sendConfirmationEmail(existUser);
+    }
+
+
+    @Override
+    public String confirmEmail(String code) {
+        Optional<ConfirmationCode> optionalConfirmationCode = confirmationCodeRepository.findByCode(code);
+
+        if (optionalConfirmationCode.isEmpty()) {
+            throw new RuntimeException("Confirmation code not found");
+        }
+
+        ConfirmationCode confirmationCode = optionalConfirmationCode.get();
+
+        if (confirmationCode.getExpired().isAfter(LocalDateTime.now())) {
+
+            User user = confirmationCode.getUser();
+            user.setActive(true);
+            userRepository.save(user);
+
+            return user.getEmail() + " confirmed!";
+        }
+
+        throw new RuntimeException("Confirmation code expired!");
     }
 }

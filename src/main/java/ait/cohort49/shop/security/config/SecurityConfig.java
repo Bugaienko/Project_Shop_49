@@ -52,6 +52,8 @@ public class SecurityConfig {
                         // Временно отключаем Security
 //                           .anyRequest().permitAll()
                         .requestMatchers(HttpMethod.POST, "/register").permitAll()
+                        // endpoint для подтверждение email
+                        .requestMatchers(HttpMethod.GET, "/confirm").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET,"/products").permitAll()
                         .requestMatchers(HttpMethod.GET, "/products/{id}").authenticated()

@@ -32,6 +32,7 @@ public class EmailServiceImpl implements EmailService {
 
     private final ConfirmationService confirmationService;
 
+
     private final static String HOST = "http://localhost:8080/api";
 
     public EmailServiceImpl(JavaMailSender mailSender, Configuration mailConfig, ConfirmationService confirmationService) {

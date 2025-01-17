@@ -49,6 +49,7 @@ public class AuthService {
 
         UserDetails foundUser = userService.loadUserByUsername(username);
 
+
         if (passwordEncoder.matches(loginRequestDTO.password(), foundUser.getPassword())) {
             String accessToken = tokenService.generateAccessToken(foundUser);
             String refreshToken = tokenService.generateRefreshToken(foundUser);

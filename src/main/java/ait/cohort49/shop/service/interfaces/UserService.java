@@ -1,6 +1,7 @@
 package ait.cohort49.shop.service.interfaces;
 
 import ait.cohort49.shop.model.dto.UserRegisterDto;
+import ait.cohort49.shop.model.entity.User;
 
 /**
  * @author Sergey Bugaenko
@@ -10,4 +11,6 @@ import ait.cohort49.shop.model.dto.UserRegisterDto;
 public interface UserService {
 
     void register(UserRegisterDto userRegisterDto);
+
+    String confirmEmail(String code);
 }
