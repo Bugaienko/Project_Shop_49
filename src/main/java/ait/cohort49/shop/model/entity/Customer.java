@@ -31,8 +31,8 @@ public class Customer {
 
     @Override
     public String toString() {
-        return String.format("Customer: id - %d, name - %s, active - %s",
-                id, name, active ? "yes" : "no");
+        return String.format("Customer: id - %d, name - %s, active - %s, cart - %s",
+                id, name, active ? "yes" : "no", cart);
     }
 
     @Override
